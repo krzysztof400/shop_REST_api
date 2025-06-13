@@ -1,5 +1,6 @@
 // frontend/src/pages/Login.jsx
 import { useEffect, useState } from 'react';
+import MyInput from '../components/MyInput.jsx';
 
 function Register() {
   const handleRegister = () => {
@@ -37,16 +38,56 @@ function Register() {
 
 
   return (
-    <div className="conainer" id="login-contatiner">
-        <input type="text" id="email-input"placeholder="Enter your email" />
-        <input type="password" id="password-input" placeholder="Enter your password" />
-        <input type="text" id="name-input" placeholder="Enter your name" />
-        <input type="text" id="address-input" placeholder="Enter your address" />
-        <input type="text" id="city-input" placeholder="Enter your city" />
-        <input type="text" id="postalCode-input" placeholder="Enter your postal code" />
-        <input type="text" id="country-input" placeholder="Enter your country" />
-
-        <button onClick={handleRegister}></button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-800">
+      <div className="container max-w-xs p-6 bg-gray-900 rounded shadow-lg" id="login-container">
+        <h2 className="text-2xl font-bold text-center mb-4 text-white">Register</h2>
+        <div className="flex flex-col w-full">
+          <MyInput
+            type="text"
+            id="email-input"
+            placeholder="Enter your email">
+          </MyInput>
+          <MyInput
+            type="password"
+            id="password-input"
+            placeholder="Enter your password"
+          />
+          <MyInput
+            type="text"
+            id="name-input"
+            placeholder="Enter your name"
+          />
+          <MyInput
+            type="text"
+            id="address-input"
+            placeholder="Enter your address"
+          />
+          <MyInput
+            type="text"
+            id="city-input"
+            placeholder="Enter your city"
+          />
+          <MyInput
+            type="text"
+            id="postalCode-input"
+            placeholder="Enter your postal code"
+          />
+          <MyInput
+            type="text"
+            id="country-input"
+            placeholder="Enter your country"
+          />
+        </div>
+        <button
+          onClick={handleRegister}
+          className="w-full mt-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Register
+        </button>
+        <p className="text-center text-white mt-4 w-full">
+          Already have an account? <a href="/login" className="text-blue-500">Login</a>
+        </p>
+      </div>
     </div>
   );
 }
