@@ -51,6 +51,9 @@ function Login() {
         <p className="text-center text-white mt-4 w-full">
           Don't have an account? <a href="/register" className="text-blue-500">Register</a>
         </p>
+        <p>
+          <a href="/" className="text-blue-500">Back to main page</a>
+        </p>
       </div>
     </div>
   );

@@ -87,6 +87,9 @@ function Register() {
         <p className="text-center text-white mt-4 w-full">
           Already have an account? <a href="/login" className="text-blue-500">Login</a>
         </p>
+        <p>
+          <a href="/" className="text-blue-500">Back to main page</a>
+        </p>
       </div>
     </div>
   );
