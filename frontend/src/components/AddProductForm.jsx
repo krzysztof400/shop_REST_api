@@ -22,11 +22,17 @@ function AddProductForm({ onProductAdded, onCancel }) {
       return;
     }
     try {
+      const token = localStorage.getItem('token'); // Get the token from localStorage
+      if (!token) {
+        alert('Authentication token not found. Please log in as admin.');
+        return;
+      }
+
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`, // Add authorization if needed
+          'Authorization': `Bearer ${token}`, // Add the Authorization header
         },
         body: JSON.stringify(productData),
       });
@@ -72,7 +78,7 @@ function AddProductForm({ onProductAdded, onCancel }) {
             required
             rows="3"
             placeholder="Enter product description"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="text-black mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           ></textarea>
         </div>
         <div>
@@ -91,15 +97,24 @@ function AddProductForm({ onProductAdded, onCancel }) {
         </div>
         <div>
           <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
-          <MyInput
+          <MyInput   
             type="text"
             name="category"
             id="category"
+            list="categories"
             placeholder="Enter product category"
             value={productData.category}
             onChange={handleInputChange}
             // required
           />
+          <datalist id="categories">
+            <option value="Elektronika" />
+            <option value="Książki" />
+            <option value="Ubrania" />
+            <option value="Artykuły spożywcze" />
+            <option value="Meble" />
+            <option value="Inne" />
+          </datalist>
         </div>
         <div>
           <label htmlFor="stock" className="block text-sm font-medium text-gray-700">Stock</label>

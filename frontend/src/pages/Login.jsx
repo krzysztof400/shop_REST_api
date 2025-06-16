@@ -23,12 +23,17 @@ function Login() {
       });
 
       const data = await response.json();
+      console.log('Login API response data:', data); // <<< ADD THIS LOG
 
       if (response.ok) {
-        // Save token and user data to localStorage
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/'); // Redirect to home page on successful login
+        console.log('Token set in localStorage:', data.token); // <<< ADD THIS LOG
+
+        const userToStore = data.user || null;
+        localStorage.setItem('user', JSON.stringify(userToStore));
+        console.log('User data string stored in localStorage:', JSON.stringify(userToStore)); // <<< ADD THIS LOG
+        
+        navigate('/'); 
       } else {
         setError(data.message || 'Login failed. Please check your credentials.');
       }

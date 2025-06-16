@@ -120,8 +120,19 @@ const sendTokenResponse = (user, statusCode, res) => {
   // Utworzenie tokenu
   const token = user.getSignedJwtToken();
 
+  // Przygotuj obiekt użytkownika do odpowiedzi, wykluczając hasło
+  // i inne potencjalnie wrażliwe dane, które nie są potrzebne na frontendzie od razu po zalogowaniu.
+  const userForResponse = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    // Możesz dodać inne pola, jeśli są potrzebne, np. user.address
+  };
+
   res.status(statusCode).json({
     success: true,
-    token
+    token,
+    user: userForResponse // Dodaj obiekt użytkownika do odpowiedzi
   });
 };

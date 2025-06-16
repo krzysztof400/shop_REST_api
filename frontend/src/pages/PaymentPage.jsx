@@ -16,18 +16,41 @@ function PaymentPage() {
     postalCode: '',
     country: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [isOrderLoading, setIsOrderLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Get order data from localStorage or navigate back if not found
-    const storedOrderData = localStorage.getItem('pendingOrder');
-    if (storedOrderData) {
-      setOrderData(JSON.parse(storedOrderData));
-    } else {
-      navigate('/');
+// ...existing code...
+useEffect(() => {
+  setIsOrderLoading(true);
+  console.log('PaymentPage: useEffect triggered. Attempting to retrieve pendingOrder.');
+  const storedOrderDataString = localStorage.getItem('pendingOrder');
+  console.log('PaymentPage: Retrieved storedOrderDataString from localStorage:', storedOrderDataString);
+
+  if (storedOrderDataString && storedOrderDataString !== 'undefined' && storedOrderDataString !== 'null') {
+    try {
+      const parsedData = JSON.parse(storedOrderDataString);
+      console.log('PaymentPage: Successfully parsed pendingOrder:', parsedData);
+      // Add a more robust check for the structure of parsedData
+      if (parsedData && Array.isArray(parsedData.items) && typeof parsedData.total === 'number') {
+        setOrderData(parsedData);
+      } else {
+        console.error('PaymentPage: Parsed order data is missing expected fields (items array, total number) or is null:', parsedData);
+        setError('Retrieved order details are incomplete or invalid. Please try checking out again.');
+        localStorage.removeItem('pendingOrder'); // Clean up invalid/incomplete data
+      }
+    } catch (e) {
+      console.error("PaymentPage: Failed to parse pendingOrder from localStorage:", e, "Raw string was:", storedOrderDataString);
+      setError('Error retrieving order details. Please try checking out again.');
+      localStorage.removeItem('pendingOrder'); // Clean up unparseable data
     }
-  }, [navigate]);
+  } else {
+    console.log('PaymentPage: No valid pendingOrder found in localStorage (it was null, undefined, or the string "undefined" or "null").');
+    setError('No order information found. Please return to your cart and try checking out again.');
+  }
+  setIsOrderLoading(false);
+}, []); // Runs once on mount
+// ...existing code...
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -36,25 +59,29 @@ function PaymentPage() {
 
   const handleSubmitPayment = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    setError(''); // Clear previous errors
+
+    if (!orderData) {
+      setError('Cannot proceed with payment: order details are missing.');
+      return;
+    }
 
     // Validate required fields
     if (!paymentData.cardNumber || !paymentData.expiryDate || !paymentData.cvv || !paymentData.cardHolder) {
       setError('Please fill in all payment fields');
-      setLoading(false);
-      return;
+      return; // No need to set isSubmitting if validation fails early
     }
+
+    setIsSubmitting(true);
 
     try {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Create order after successful payment
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Please login to complete your order');
-        setLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -78,9 +105,10 @@ function PaymentPage() {
       });
 
       if (response.ok) {
-        const order = await response.json();
+        // const order = await response.json(); // Not used, can be removed if not needed
+        await response.json();
         localStorage.removeItem('pendingOrder');
-        localStorage.removeItem('cart');
+        localStorage.removeItem('cart'); // Also clear the main cart
         alert('Payment successful! Your order has been placed.');
         navigate('/orders');
       } else {
@@ -91,12 +119,16 @@ function PaymentPage() {
       console.error('Payment error:', error);
       setError('Payment failed. Please try again.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (!orderData) {
-    return <div>Loading...</div>;
+  if (isOrderLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 flex justify-center items-center">
+        <div className="text-xl font-semibold">Loading order details...</div>
+      </div>
+    );
   }
 
   return (
@@ -115,21 +147,27 @@ function PaymentPage() {
             {/* Order Summary */}
             <div>
               <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                {orderData.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 border-b">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+              {orderData ? (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  {orderData.items.map((item, index) => (
+                    <div key={index} className="flex justify-between items-center py-2 border-b">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                      </div>
+                      <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
                     </div>
-                    <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                  ))}
+                  <div className="flex justify-between items-center pt-4 text-lg font-bold">
+                    <span>Total:</span>
+                    <span>${orderData.total.toFixed(2)}</span>
                   </div>
-                ))}
-                <div className="flex justify-between items-center pt-4 text-lg font-bold">
-                  <span>Total:</span>
-                  <span>${orderData.total.toFixed(2)}</span>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg text-gray-500">
+                  Order details are unavailable. Please return to your cart and try checking out again.
+                </div>
+              )}
             </div>
 
             {/* Payment Form */}
@@ -255,10 +293,10 @@ function PaymentPage() {
                 <div className="flex space-x-4 pt-6">
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={isSubmitting || !orderData} // Disable if submitting or no order data
                     className="flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 font-medium"
                   >
-                    {loading ? 'Processing...' : `Pay $${orderData.total.toFixed(2)}`}
+                    {isSubmitting ? 'Processing...' : (orderData ? `Pay $${orderData.total.toFixed(2)}` : 'Payment Unavailable')}
                   </button>
                   <button
                     type="button"

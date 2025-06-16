@@ -17,18 +17,28 @@ function AdminPage() {
   }, []);
 
   const fetchProducts = async () => {
+    setLoading(true);
+    setError('');
     try {
-      const response = await fetch('/api/products');
-      if (response.ok) {
-        const data = await response.json();
-        setProducts(data);
-      } else {
-        const errorData = await response.json();
-        setError(`Failed to fetch products: ${errorData.message || response.statusText}`);
+      // Add Cache-Control header to ensure fresh data is fetched
+      const response = await fetch('/api/products', {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+      if (!response.ok) {
+        // If the server sends a 304, response.ok might still be true,
+        // but we want to treat it as needing the full data.
+        // However, 'no-cache' should prompt the server for a full response if content changed.
+        const errorData = await response.text(); // Read error text for more info
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
       }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setError('Failed to fetch products. Please check your connection.');
+      const data = await response.json();
+      // Assuming your API returns products in a 'data' property or directly as an array
+      setProducts(data.data || data); 
+    } catch (err) {
+      setError(err.message || 'Failed to fetch products');
+      console.error("Failed to fetch products:", err);
     } finally {
       setLoading(false);
     }
@@ -167,7 +177,7 @@ function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {products.map((product) => (
+                  {Array.isArray(products) && products.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>

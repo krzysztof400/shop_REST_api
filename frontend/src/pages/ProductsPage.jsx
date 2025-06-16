@@ -1,40 +1,68 @@
 // frontend/src/pages/ProductsPage.jsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import Cart from '../components/Cart';
 
 function ProductsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    console.log('ProductsPage useEffect triggered by location change:', location.pathname); // <<< ADD THIS LOG
     fetchProducts();
     loadCartFromStorage();
     checkUserStatus();
-  }, []);
+  }, [location]);
 
   const checkUserStatus = () => {
+    console.log('checkUserStatus called'); // <<< ADD THIS LOG
     const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    const userDataString = localStorage.getItem('user');
+    console.log('Token from localStorage in checkUserStatus:', token); // <<< ADD THIS LOG
+    console.log('User data string from localStorage in checkUserStatus:', userDataString); // <<< ADD THIS LOG
+
+    if (token && userDataString) {
+      try {
+        const parsedUser = JSON.parse(userDataString);
+        console.log('Parsed user data in checkUserStatus:', parsedUser); // <<< ADD THIS LOG
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('user'); 
+        localStorage.removeItem('token'); 
+        setUser(null); 
+      }
+    } else {
+      console.log('Token or userDataString missing in checkUserStatus. Setting user to null.'); // <<< ADD THIS LOG
+      setUser(null);
+      if (!token) {
+        localStorage.removeItem('user'); 
+      }
     }
   };
-
   const fetchProducts = async () => {
+    setLoading(true); // Set loading to true at the start
+    setError(''); // Clear previous errors
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/products', {
+        headers: {
+          'Cache-Control': 'no-cache', // Add Cache-Control header
+        },
+      });
       if (response.ok) {
         const data = await response.json();
-        setProducts(data);
+        // Assuming your API returns products in a 'data' property
+        // or directly as an array if 'data' is not present.
+        setProducts(data.data || data); 
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: response.statusText })); // Handle non-JSON error responses
         setError(`Failed to fetch products: ${errorData.message || response.statusText}`);
       }
     } catch (error) {
@@ -104,24 +132,58 @@ function ProductsPage() {
   };
 
   const handleCheckout = () => {
+    console.log('handleCheckout called. Current cart:', cart);
+    console.log('handleCheckout: Is user logged in?', user);
+
     if (cart.length === 0) {
       alert('Your cart is empty');
+      console.log('handleCheckout: Cart is empty. Aborting.');
       return;
     }
     
     if (!user) {
       alert('Please login to checkout');
+      console.log('handleCheckout: User not logged in. Aborting and navigating to login.');
       navigate('/login');
       return;
     }
 
-    // Store order data for payment page
+    const currentTotal = getTotalPrice();
+    console.log('handleCheckout: Calculated total price:', currentTotal);
+
     const orderData = {
       items: cart,
-      total: getTotalPrice()
+      total: currentTotal
     };
-    localStorage.setItem('pendingOrder', JSON.stringify(orderData));
-    navigate('/payment');
+    console.log('ProductsPage: Preparing to set pendingOrder with data:', orderData);
+    
+    // Validate orderData before attempting to store it
+    if (!orderData.items || orderData.items.length === 0 || typeof orderData.total !== 'number' || isNaN(orderData.total)) {
+      console.error('ProductsPage: Invalid orderData before setting to localStorage. Aborting checkout.', orderData);
+      alert('There was an issue preparing your order. Please try again.');
+      return;
+    }
+
+    try {
+      const stringifiedOrderData = JSON.stringify(orderData);
+      console.log('ProductsPage: Stringified orderData:', stringifiedOrderData);
+      localStorage.setItem('pendingOrder', stringifiedOrderData);
+      
+      // Verify it was set by reading it back immediately
+      const verifyStoredData = localStorage.getItem('pendingOrder');
+      console.log('ProductsPage: Verified pendingOrder from localStorage immediately after set:', verifyStoredData);
+      
+      if (verifyStoredData === stringifiedOrderData) {
+        console.log('ProductsPage: Successfully set and verified pendingOrder. Navigating to /payment.');
+        navigate('/payment');
+      } else {
+        console.error('ProductsPage: Discrepancy found after setting pendingOrder. Expected:', stringifiedOrderData, 'Got:', verifyStoredData);
+        alert('Failed to save order details for payment. Please try again.');
+      }
+    } catch (e) {
+      console.error('ProductsPage: Error stringifying or setting pendingOrder to localStorage:', e);
+      alert('An error occurred while preparing your order for payment. Please try again.');
+    }
   };
 
   const handleLogout = () => {
@@ -149,7 +211,7 @@ function ProductsPage() {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">E-Commerce Store</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Good World Assosiation Store</h1>
             <div className="flex items-center space-x-4">
               {/* Cart Button */}
               <button
@@ -169,7 +231,15 @@ function ProductsPage() {
               {/* User Actions */}
               {user ? (
                 <div className="flex items-center space-x-2">
-                  <span className="text-gray-700">Welcome, {user.name}!</span>
+                  <span className="text-gray-700">Logged in as: {user.name || 'User'}</span>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => navigate('/admin')}
+                      className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                    >
+                      Admin
+                    </button>
+                  )}
                   <button
                     onClick={() => navigate('/orders')}
                     className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -184,7 +254,8 @@ function ProductsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="flex space-x-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-700">Not logged in</span>
                   <button
                     onClick={() => navigate('/login')}
                     className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -199,13 +270,6 @@ function ProductsPage() {
                   </button>
                 </div>
               )}
-              
-              <button
-                onClick={() => navigate('/admin')}
-                className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                Admin
-              </button>
             </div>
           </div>
         </div>
@@ -225,7 +289,7 @@ function ProductsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
+            {Array.isArray(products) && products.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}
