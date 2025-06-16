@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AddProductForm from '../components/AddProductForm';
-// import EditProductForm from '../components/EditProductForm';
+import EditProductForm from '../components/EditProductForm';
 
 function AdminPage() {
   const navigate = useNavigate();
@@ -58,12 +58,12 @@ function AdminPage() {
     }
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          // Add authorization header if needed
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         }
       });
 

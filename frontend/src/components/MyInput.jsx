@@ -12,7 +12,7 @@ function MyInput({ type, id, name, placeholder, value, onChange, required, min, 
       required={required}
       min={min}
       step={step}
-      className={`w-full p-2 mb-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${className || ''}`}
+      className={`w-full p-2 mb-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-black ${className || ''}`}
     />
   );
 }
